@@ -50,8 +50,7 @@ CREATE TABLE likes (
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE, 
     FOREIGN KEY (ressource_id) REFERENCES ressources(ressource_id) ON DELETE CASCADE,
     UNIQUE KEY unique_like (user_id, ressource_id) 
-    
-) ENGINE=InnoDB;
+    ) ENGINE=InnoDB;
 
 -- Table des commentaires
 CREATE TABLE commentaires (
