@@ -171,6 +171,12 @@ $isLoggedIn = isset($_SESSION['user_id']);
 <!-- Lien vers le fichier JavaScript externe -->
 <script src="../js/commentaire.js"></script>
 
+<!-- Définir la variable globale pour add_ressource.js -->
+<script>
+    const isLoggedIn = <?php echo $isLoggedIn ? 'true' : 'false'; ?>;
+</script>
+<script src="../js/add_ressource.js"></script>
+
 <script src="../js/add_ressource.js"></script>
 
 <!-- Inclure le footer -->
