@@ -191,7 +191,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </main>
 
     <!-- Inclure le fichier JavaScript -->
-    <script src="/Projet_Web/collaborative_Library/js/password.js"></script>
+    <script src="../js/password.js"></script>
 
     <!-- Inclure le footer -->
     <?php include '../footer/footer.php'; ?>
