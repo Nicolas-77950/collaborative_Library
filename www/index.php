@@ -3,7 +3,10 @@ session_start();
 // Inclure la connexion à la base de données
 require_once 'db_connect.php';
 
-// Requête SQL pour récupérer les ressources avec le lien vidéo
+// Récupérer l'ID de l'utilisateur connecté (0 si non connecté)
+$userId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
+
+// Requête SQL pour récupérer les ressources avec les informations sur les likes et commentaires
 $sql = "
     SELECT 
         r.ressource_id,
@@ -16,7 +19,13 @@ $sql = "
         COUNT(l.like_id) AS like_count,
         COUNT(c.commentaire_id) AS comment_count,
         GROUP_CONCAT(c.content SEPARATOR '|||') AS comments_content,
-        GROUP_CONCAT(u2.username SEPARATOR '|||') AS comments_authors
+        GROUP_CONCAT(u2.username SEPARATOR '|||') AS comments_authors,
+        EXISTS (
+            SELECT 1 
+            FROM likes l2 
+            WHERE l2.ressource_id = r.ressource_id 
+            AND l2.user_id = :user_id
+        ) AS has_liked
     FROM 
         ressources r
     INNER JOIN 
@@ -35,9 +44,11 @@ $sql = "
 
 try {
     $stmt = $pdo->prepare($sql);
+    $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
     $stmt->execute();
     $ressources = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
+    // Traiter les commentaires pour chaque ressource
     foreach ($ressources as &$ressource) {
         if ($ressource['comments_content']) {
             $ressource['comments'] = array_combine(
@@ -191,41 +202,70 @@ require_once '../header/header.php';
                         <p><span class="font-semibold text-gray-700">Auteur :</span> <?php echo htmlspecialchars($ressource['username']); ?></p>
                         <p><span class="font-semibold text-gray-700">Date :</span> <?php echo htmlspecialchars($ressource['created_at']); ?></p>
                         <div class="flex items-center space-x-4">
-                            <p class="flex items-center">
-                                <svg class="w-5 h-5 mr-1 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <button 
+                                class="like-btn flex items-center space-x-1 text-gray-600 hover:text-red-500 focus:outline-none transition-colors"
+                                data-resource-id="<?php echo $ressource['ressource_id']; ?>"
+                                <?php echo $ressource['has_liked'] ? 'disabled' : ''; ?>
+                            >
+                                <svg class="w-5 h-5 <?php echo $ressource['has_liked'] ? 'text-red-500' : 'text-gray-600'; ?>" fill="<?php echo $ressource['has_liked'] ? 'currentColor' : 'none'; ?>" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
                                 </svg>
-                                <span><?php echo $ressource['like_count']; ?> Likes</span>
-                            </p>
+                                <span class="like-count"><?php echo $ressource['like_count']; ?> Likes</span>
+                            </button>
                             <!-- Bouton commentaires -->
-                            <button 
-                                class="flex items-center space-x-2 text-gray-600 hover:text-indigo-600 focus:outline-none transition-colors"
-                                onclick="toggleComments('comments-<?php echo $ressource['ressource_id']; ?>')"
-                            >
-                                <svg class="w-5 h-5 transform transition-transform hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="flex items-center space-x-2 text-gray-600">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                                         d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
                                 </svg>
-                                <span><?php echo $ressource['comment_count']; ?> Commentaires</span>
-                            </button>
+                                <span class="comment-count"><?php echo $ressource['comment_count']; ?> Commentaires</span>
+                            </div>
                         </div>
                     </div>
+
                     <!-- Section commentaires -->
                     <div 
                         id="comments-<?php echo $ressource['ressource_id']; ?>" 
-                        class="hidden mt-4 p-4 bg-gray-100 rounded-lg"
+                        class="mt-4 p-4 bg-gray-100 rounded-lg"
                     >
-                        <?php if (empty($ressource['comments'])): ?>
-                            <p class="text-gray-500 italic">Aucun commentaire pour le moment.</p>
-                        <?php else: ?>
-                            <div class="space-y-3">
+                        <!-- Liste des commentaires -->
+                        <div class="comment-list space-y-3">
+                            <?php if (empty($ressource['comments'])): ?>
+                                <p class="text-gray-500 italic">Aucun commentaire pour le moment.</p>
+                            <?php else: ?>
                                 <?php foreach ($ressource['comments'] as $author => $content): ?>
                                     <div class="border-l-4 border-indigo-200 pl-3">
                                         <p class="font-semibold text-gray-700"><?php echo htmlspecialchars($author); ?></p>
                                         <p class="text-gray-600"><?php echo htmlspecialchars($content); ?></p>
                                     </div>
                                 <?php endforeach; ?>
-                            </div>
+                            <?php endif; ?>
+                        </div>
+
+                        <!-- Formulaire pour ajouter un commentaire -->
+                        <?php if ($isLoggedIn): ?>
+                            <form 
+                                class="comment-form mt-4 flex flex-col space-y-2" 
+                                data-resource-id="<?php echo $ressource['ressource_id']; ?>"
+                            >
+                                <textarea 
+                                    name="content" 
+                                    class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" 
+                                    rows="2" 
+                                    placeholder="Ajouter un commentaire..."
+                                    required
+                                ></textarea>
+                                <button 
+                                    type="submit" 
+                                    class="self-end px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition-colors duration-300"
+                                >
+                                    Commenter
+                                </button>
+                            </form>
+                        <?php else: ?>
+                            <p class="mt-4 text-gray-500 italic">
+                                <a href="login.php" class="text-indigo-600 hover:underline">Connectez-vous</a> pour ajouter un commentaire.
+                            </p>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -234,12 +274,15 @@ require_once '../header/header.php';
     <?php endif; ?>
 </main>
 
-<!-- Lien vers le fichier JavaScript externe -->
-<script src="../js/commentaire.js"></script>
+<!-- Définir la variable isLoggedIn pour les scripts JavaScript -->
 <script>
     const isLoggedIn = <?php echo $isLoggedIn ? 'true' : 'false'; ?>;
 </script>
+
+<!-- Inclure les fichiers JavaScript -->
 <script src="../js/add_ressource.js"></script>
+<script src="../js/like.js"></script>
+<script src="../js/comment.js"></script>
 
 <!-- Inclure le footer -->
 <?php include '../footer/footer.php'; ?>
