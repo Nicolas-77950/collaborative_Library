@@ -1,8 +1,8 @@
 <?php
+// Assurez-vous qu'il n'y a rien avant cette ligne (pas d'espace, pas de saut de ligne)
 // Déterminer la page actuelle
 $current_page = basename($_SERVER['PHP_SELF']);
 ?>
-
 
 <!DOCTYPE html>
 <html lang="fr">
@@ -28,7 +28,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 </h1>
             </div>
 
-
             <!-- Navigation pour desktop -->
             <nav class="hidden md:flex items-center space-x-4 lg:space-x-6">
                 <a href="/Projet_Web/collaborative_Library/www/index.php"
@@ -36,7 +35,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     Accueil
                 </a>
                 <?php if (isset($_SESSION['user_id'])): ?>
-                    <a href="profile.php"
+                    <a href="/Projet_Web/collaborative_Library/www/profile.php"
                        class="px-4 py-2 rounded-full font-medium transition-all duration-300 flex items-center space-x-2 <?php echo $current_page === 'profile.php' ? 'bg-white text-indigo-700 shadow-md' : 'text-white hover:bg-indigo-800 hover:shadow-md'; ?>">
                         <!-- Icône utilisateur -->
                         <svg class="w-5 h-5 sm:w-6 sm:h-6 <?php echo $current_page === 'profile.php' ? 'text-indigo-700' : 'text-white'; ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -44,7 +43,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         </svg>
                         <span><?php echo htmlspecialchars($_SESSION['username']); ?></span>
                     </a>
-                    <a href="logout.php"
+                    <a href="/Projet_Web/collaborative_Library/www/logout.php"
                        class="px-4 py-2 rounded-full font-medium transition-all duration-300 flex items-center space-x-2 <?php echo $current_page === 'logout.php' ? 'bg-white text-indigo-700 shadow-md' : 'text-white hover:bg-indigo-800 hover:shadow-md'; ?>">
                         <!-- Icône de déconnexion -->
                         <svg class="w-5 h-5 sm:w-6 sm:h-6 <?php echo $current_page === 'logout.php' ? 'text-indigo-700' : 'text-white'; ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -53,17 +52,16 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         <span>Se déconnecter</span>
                     </a>
                 <?php else: ?>
-                    <a href="login.php"
+                    <a href="/Projet_Web/collaborative_Library/www/login.php"
                        class="px-4 py-2 rounded-full font-medium transition-all duration-300 <?php echo $current_page === 'login.php' ? 'bg-white text-indigo-700 shadow-md' : 'text-white hover:bg-indigo-800 hover:shadow-md'; ?>">
                         Se connecter
                     </a>
-                    <a href="register.php"
+                    <a href="/Projet_Web/collaborative_Library/www/register.php"
                        class="px-4 py-2 rounded-full font-semibold transition-all duration-300 border-2 border-white text-white hover:bg-white hover:text-indigo-700 hover:shadow-md">
                         S'inscrire
                     </a>
                 <?php endif; ?>
             </nav>
-
 
             <!-- Bouton hamburger pour mobile -->
             <button id="menu-toggle" class="md:hidden text-white focus:outline-none">
@@ -76,7 +74,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
             </button>
         </div>
 
-
         <!-- Menu mobile (caché par défaut) -->
         <div id="mobile-menu" class="hidden md:hidden bg-indigo-600 p-4 transform -translate-y-full transition-transform duration-300">
             <nav class="flex flex-col space-y-4">
@@ -85,7 +82,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     Accueil
                 </a>
                 <?php if (isset($_SESSION['user_id'])): ?>
-                    <a href="profile.php"
+                    <a href="/Projet_Web/collaborative_Library/www/profile.php"
                        class="px-5 py-2 rounded-full font-medium transition-all duration-300 flex items-center space-x-2 <?php echo $current_page === 'profile.php' ? 'bg-white text-indigo-700 shadow-md' : 'text-white hover:bg-indigo-800 hover:shadow-md'; ?>">
                         <!-- Icône utilisateur -->
                         <svg class="w-6 h-6 <?php echo $current_page === 'profile.php' ? 'text-indigo-700' : 'text-white'; ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -93,7 +90,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         </svg>
                         <span><?php echo htmlspecialchars($_SESSION['username']); ?></span>
                     </a>
-                    <a href="logout.php"
+                    <a href="/Projet_Web/collaborative_Library/www/logout.php"
                        class="px-5 py-2 rounded-full font-medium transition-all duration-300 flex items-center space-x-2 <?php echo $current_page === 'logout.php' ? 'bg-white text-indigo-700 shadow-md' : 'text-white hover:bg-indigo-800 hover:shadow-md'; ?>">
                         <!-- Icône de déconnexion -->
                         <svg class="w-6 h-6 <?php echo $current_page === 'logout.php' ? 'text-indigo-700' : 'text-white'; ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -102,11 +99,11 @@ $current_page = basename($_SERVER['PHP_SELF']);
                         <span>Se déconnecter</span>
                     </a>
                 <?php else: ?>
-                    <a href="login.php"
+                    <a href="/Projet_Web/collaborative_Library/www/login.php"
                        class="px-5 py-2 rounded-full font-medium transition-all duration-300 <?php echo $current_page === 'login.php' ? 'bg-white text-indigo-700 shadow-md' : 'text-white hover:bg-indigo-800 hover:shadow-md'; ?>">
                         Se connecter
                     </a>
-                    <a href="register.php"
+                    <a href="/Projet_Web/collaborative_Library/www/register.php"
                        class="px-5 py-2 rounded-full font-semibold transition-all duration-300 border-2 border-white text-white hover:bg-white hover:text-indigo-700 hover:shadow-md">
                         S'inscrire
                     </a>

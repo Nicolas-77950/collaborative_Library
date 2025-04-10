@@ -1,8 +1,7 @@
 <?php
 session_start();
-// Inclure la connexion à la base de données et le header
+// Inclure la connexion à la base de données
 require_once 'db_connect.php';
-require_once '../header/header.php';
 
 // Vérifier si l'utilisateur est connecté
 if (!isset($_SESSION['user_id'])) {
@@ -23,6 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $content = trim($_POST['content'] ?? '');
     $type = $_POST['type'] ?? '';
     $selectedTags = $_POST['tags'] ?? [];
+    $videoUrl = trim($_POST['video_url'] ?? '');
 
     // Validation des champs
     $errors = [];
@@ -35,12 +35,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!in_array($type, ['tutoriel', 'snippet', 'article', 'autres'])) {
         $errors[] = "Le type est invalide.";
     }
+    if (!empty($videoUrl) && !filter_var($videoUrl, FILTER_VALIDATE_URL)) {
+        $errors[] = "L'URL de la vidéo est invalide.";
+    }
 
     // Gestion des fichiers téléversés
     $uploadedFiles = [];
     if (!empty($_FILES['files']['name'][0])) {
         $allowedTypes = ['application/pdf', 'video/mp4', 'video/webm', 'image/jpeg', 'image/png'];
         $maxFileSize = 10 * 1024 * 1024; // 10 MB
+
+        // Créer le répertoire uploads/ s'il n'existe pas
+        $uploadDir = __DIR__ . '/uploads/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0775, true);
+        }
 
         foreach ($_FILES['files']['name'] as $key => $fileName) {
             if ($_FILES['files']['error'][$key] === UPLOAD_ERR_OK) {
@@ -61,16 +70,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Déplacer le fichier vers le répertoire uploads/
                 $fileExtension = pathinfo($fileName, PATHINFO_EXTENSION);
                 $newFileName = uniqid() . '.' . $fileExtension;
-                $uploadPath = 'uploads/' . $newFileName;
+                $uploadPath = $uploadDir . $newFileName;
 
                 if (move_uploaded_file($fileTmp, $uploadPath)) {
                     $uploadedFiles[] = [
-                        'path' => $uploadPath,
+                        'path' => 'uploads/' . $newFileName,
                         'type' => $fileType
                     ];
                 } else {
-                    $errors[] = "Erreur lors du téléversement du fichier $fileName.";
+                    $errors[] = "Erreur lors du téléversement du fichier $fileName. Vérifiez les permissions du répertoire uploads/.";
                 }
+            } elseif ($_FILES['files']['error'][$key] !== UPLOAD_ERR_NO_FILE) {
+                $errors[] = "Erreur lors du téléversement du fichier $fileName (code d'erreur : " . $_FILES['files']['error'][$key] . ").";
             }
         }
     }
@@ -78,8 +89,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         try {
             // Insérer la ressource
-            $stmt = $pdo->prepare("INSERT INTO ressources (user_id, title, description, content, type) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([$userId, $title, $description, $content, $type]);
+            $stmt = $pdo->prepare("INSERT INTO ressources (user_id, title, description, content, type, video_url) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$userId, $title, $description, $content, $type, $videoUrl ?: null]);
 
             // Récupérer l'ID de la ressource insérée
             $resourceId = $pdo->lastInsertId();
@@ -108,6 +119,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+// Inclure le header après avoir géré la redirection
+require_once '../header/header.php';
 ?>
 
 <main class="max-w-6xl mx-auto mt-8 p-6">
@@ -190,10 +204,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </option>
                 <?php endforeach; ?>
             </select>
-        
+            <p class="text-sm text-gray-500 mt-1">Maintenez Ctrl (ou Cmd sur Mac) pour sélectionner plusieurs tags.</p>
         </div>
 
-        <!-- Champ pour téléverser des fichiers -->
+        <div class="mb-4">
+            <label for="video_url" class="block text-gray-700 font-semibold mb-2">Lien vidéo (YouTube, Vimeo, etc.)</label>
+            <input 
+                type="url" 
+                id="video_url" 
+                name="video_url" 
+                value="<?php echo isset($_POST['video_url']) ? htmlspecialchars($_POST['video_url']) : ''; ?>" 
+                class="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="https://www.youtube.com/watch?v=..."
+            >
+            <p class="text-sm text-gray-500 mt-1">Entrez l'URL d'une vidéo (optionnel).</p>
+        </div>
+
         <div class="mb-4">
             <label for="files" class="block text-gray-700 font-semibold mb-2">Joindre des fichiers (PDF, vidéos, images)</label>
             <div class="relative">

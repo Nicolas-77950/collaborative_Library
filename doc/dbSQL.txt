@@ -21,6 +21,7 @@ CREATE TABLE ressources (
     description TEXT,
     content TEXT NOT NULL,
     type ENUM('tutoriel', 'snippet', 'article', 'autres') NOT NULL,
+    video_url VARCHAR(255) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE

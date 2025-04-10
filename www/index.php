@@ -1,10 +1,9 @@
 <?php
 session_start();
-// Inclure la connexion à la base de données et le header
+// Inclure la connexion à la base de données
 require_once 'db_connect.php';
-require_once '../header/header.php';
 
-// Requête SQL (inchangée)
+// Requête SQL pour récupérer les ressources avec le lien vidéo
 $sql = "
     SELECT 
         r.ressource_id,
@@ -12,6 +11,7 @@ $sql = "
         r.description,
         r.type,
         r.created_at,
+        r.video_url,
         u.username,
         COUNT(l.like_id) AS like_count,
         COUNT(c.commentaire_id) AS comment_count,
@@ -28,7 +28,7 @@ $sql = "
     LEFT JOIN 
         users u2 ON c.user_id = u2.user_id
     GROUP BY 
-        r.ressource_id, r.title, r.description, r.type, r.created_at, u.username
+        r.ressource_id, r.title, r.description, r.type, r.created_at, r.video_url, u.username
     ORDER BY 
         r.created_at DESC
 ";
@@ -49,12 +49,29 @@ try {
         }
         unset($ressource['comments_content'], $ressource['comments_authors']);
     }
+
+    // Récupérer les fichiers joints pour chaque ressource
+    $filesByResource = [];
+    $stmt = $pdo->query("SELECT ressource_id, file_path, file_type FROM ressource_files");
+    $allFiles = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    foreach ($allFiles as $file) {
+        $filesByResource[$file['ressource_id']][] = $file;
+    }
+
+    // Associer les fichiers à chaque ressource
+    foreach ($ressources as &$ressource) {
+        $ressource['files'] = isset($filesByResource[$ressource['ressource_id']]) ? $filesByResource[$ressource['ressource_id']] : [];
+    }
 } catch (PDOException $e) {
     die("Erreur lors de la récupération des ressources : " . $e->getMessage());
 }
 
 // Vérifier si l'utilisateur est connecté
 $isLoggedIn = isset($_SESSION['user_id']);
+
+// Inclure le header après avoir géré toute logique de redirection
+require_once '../header/header.php';
 ?>
 
 <main class="max-w-6xl mx-auto mt-8 p-6">
@@ -114,6 +131,55 @@ $isLoggedIn = isset($_SESSION['user_id']);
                     <p class="text-gray-600 mt-3 line-clamp-3">
                         <?php echo htmlspecialchars($ressource['description'] ?? 'Aucune description'); ?>
                     </p>
+
+                    <!-- Afficher le lien vidéo s'il existe -->
+                    <?php if (!empty($ressource['video_url'])): ?>
+                        <div class="mt-3">
+                            <h3 class="text-sm font-semibold text-gray-700">Vidéo associée :</h3>
+                            <?php
+                            // Si c'est une URL YouTube, afficher un lecteur intégré
+                            if (preg_match('/youtube\.com\/watch\?v=([^\&]+)/i', $ressource['video_url'], $match)) {
+                                $videoId = $match[1];
+                                echo '<iframe class="w-full h-40 mt-2 rounded-lg" src="https://www.youtube.com/embed/' . htmlspecialchars($videoId) . '" frameborder="0" allowfullscreen></iframe>';
+                            } else {
+                                // Sinon, afficher un lien cliquable
+                                echo '<a href="' . htmlspecialchars($ressource['video_url']) . '" target="_blank" class="text-indigo-600 hover:underline">Voir la vidéo</a>';
+                            }
+                            ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <!-- Afficher les fichiers joints -->
+                    <?php if (!empty($ressource['files'])): ?>
+                        <div class="mt-3">
+                            <h3 class="text-sm font-semibold text-gray-700">Fichiers joints :</h3>
+                            <div class="space-y-2 mt-2">
+                                <?php foreach ($ressource['files'] as $file): ?>
+                                    <?php
+                                    // Vérifier si le fichier est une image (JPEG ou PNG)
+                                    $isImage = in_array($file['file_type'], ['image/jpeg', 'image/png']);
+                                    ?>
+                                    <?php if ($isImage): ?>
+                                        <!-- Afficher l'image directement -->
+                                        <div>
+                                            <img src="<?php echo htmlspecialchars($file['file_path']); ?>" alt="Image jointe" class="w-full max-w-xs h-auto rounded-lg">
+                                        </div>
+                                    <?php else: ?>
+                                        <!-- Afficher un lien pour les autres types de fichiers -->
+                                        <div class="flex items-center space-x-2">
+                                            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                                            </svg>
+                                            <a href="<?php echo htmlspecialchars($file['file_path']); ?>" target="_blank" class="text-indigo-600 hover:underline">
+                                                <?php echo htmlspecialchars(basename($file['file_path'])); ?> (<?php echo htmlspecialchars($file['file_type']); ?>)
+                                            </a>
+                                        </div>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
                     <div class="mt-4 text-sm text-gray-500 space-y-1">
                         <p><span class="font-semibold text-gray-700">Type :</span> 
                             <span class="capitalize <?php echo $ressource['type'] === 'tutoriel' ? 'text-indigo-600' : 
@@ -170,13 +236,9 @@ $isLoggedIn = isset($_SESSION['user_id']);
 
 <!-- Lien vers le fichier JavaScript externe -->
 <script src="../js/commentaire.js"></script>
-
-<!-- Définir la variable globale pour add_ressource.js -->
 <script>
     const isLoggedIn = <?php echo $isLoggedIn ? 'true' : 'false'; ?>;
 </script>
-<script src="../js/add_ressource.js"></script>
-
 <script src="../js/add_ressource.js"></script>
 
 <!-- Inclure le footer -->

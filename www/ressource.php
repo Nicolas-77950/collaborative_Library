@@ -20,6 +20,7 @@ $sql = "
         r.content,
         r.type,
         r.created_at,
+        r.video_url,
         u.username
     FROM 
         ressources r
@@ -56,7 +57,20 @@ $files = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <?php echo nl2br(htmlspecialchars($resource['content'])); ?>
         </div>
 
-        <!-- Afficher les fichiers joints -->
+        <?php if (!empty($resource['video_url'])): ?>
+            <div class="mb-6">
+                <h2 class="text-xl font-semibold text-gray-700 mb-3">Vidéo associée</h2>
+                <?php
+                if (preg_match('/youtube\.com\/watch\?v=([^\&]+)/i', $resource['video_url'], $match)) {
+                    $videoId = $match[1];
+                    echo '<iframe class="w-full max-w-2xl h-64" src="https://www.youtube.com/embed/' . htmlspecialchars($videoId) . '" frameborder="0" allowfullscreen></iframe>';
+                } else {
+                    echo '<a href="' . htmlspecialchars($resource['video_url']) . '" target="_blank" class="text-indigo-600 hover:underline">Voir la vidéo</a>';
+                }
+                ?>
+            </div>
+        <?php endif; ?>
+
         <?php if (!empty($files)): ?>
             <div class="mb-6">
                 <h2 class="text-xl font-semibold text-gray-700 mb-3">Fichiers joints</h2>
