@@ -20,9 +20,22 @@ if ($resourceId <= 0) {
 }
 
 try {
-    // Insérer le like (la contrainte UNIQUE empêchera les doublons)
-    $stmt = $pdo->prepare("INSERT INTO likes (user_id, ressource_id) VALUES (?, ?)");
+    // Vérifier si l'utilisateur a déjà liké la ressource
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM likes WHERE user_id = ? AND ressource_id = ?");
     $stmt->execute([$userId, $resourceId]);
+    $hasLiked = $stmt->fetchColumn() > 0;
+
+    if ($hasLiked) {
+        // L'utilisateur a déjà liké, donc on supprime le like
+        $stmt = $pdo->prepare("DELETE FROM likes WHERE user_id = ? AND ressource_id = ?");
+        $stmt->execute([$userId, $resourceId]);
+        $action = 'unliked';
+    } else {
+        // L'utilisateur n'a pas encore liké, donc on ajoute le like
+        $stmt = $pdo->prepare("INSERT INTO likes (user_id, ressource_id) VALUES (?, ?)");
+        $stmt->execute([$userId, $resourceId]);
+        $action = 'liked';
+    }
 
     // Récupérer le nouveau nombre de likes
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM likes WHERE ressource_id = ?");
@@ -31,17 +44,13 @@ try {
 
     echo json_encode([
         'success' => true,
+        'action' => $action, // Indique si on a liké ou déliké
         'like_count' => $likeCount,
-        'has_liked' => true
+        'has_liked' => $action === 'liked' // true si liké, false si déliké
     ]);
 } catch (PDOException $e) {
-    // Si l'erreur est due à une violation de la contrainte UNIQUE, cela signifie que l'utilisateur a déjà liké
-    if ($e->getCode() == 23000) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Vous avez déjà liké cette ressource.']);
-    } else {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'Erreur serveur : ' . $e->getMessage()]);
-    }
+    // Si l'erreur est due à une violation de la contrainte UNIQUE, cela ne devrait pas arriver ici
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'Erreur serveur : ' . $e->getMessage()]);
 }
 exit();

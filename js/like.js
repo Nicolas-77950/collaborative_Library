@@ -16,8 +16,8 @@ document.querySelectorAll('.like-btn').forEach(button => {
             return;
         }
 
-        // Envoyer une requête AJAX pour liker la ressource
-        fetch('like_resource.php', { 
+        // Envoyer une requête AJAX pour liker ou déliker la ressource
+        fetch('like_resource.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -35,11 +35,19 @@ document.querySelectorAll('.like-btn').forEach(button => {
             if (data.success) {
                 // Mettre à jour le nombre de likes
                 likeCountSpan.textContent = `${data.like_count} Likes`;
-                // Changer l'apparence du bouton
-                button.disabled = true;
-                heartIcon.classList.remove('text-gray-600');
-                heartIcon.classList.add('text-red-500');
-                heartIcon.setAttribute('fill', 'currentColor');
+
+                // Mettre à jour l'apparence du bouton en fonction de l'état
+                if (data.has_liked) {
+                    // L'utilisateur vient de liker
+                    heartIcon.classList.remove('text-gray-600');
+                    heartIcon.classList.add('text-red-500');
+                    heartIcon.setAttribute('fill', 'currentColor');
+                } else {
+                    // L'utilisateur vient de déliker
+                    heartIcon.classList.remove('text-red-500');
+                    heartIcon.classList.add('text-gray-600');
+                    heartIcon.setAttribute('fill', 'none');
+                }
             } else {
                 // Afficher un message d'erreur
                 alert(data.message);

@@ -202,16 +202,16 @@ require_once '../header/header.php';
                         <p><span class="font-semibold text-gray-700">Auteur :</span> <?php echo htmlspecialchars($ressource['username']); ?></p>
                         <p><span class="font-semibold text-gray-700">Date :</span> <?php echo htmlspecialchars($ressource['created_at']); ?></p>
                         <div class="flex items-center space-x-4">
-                            <button 
-                                class="like-btn flex items-center space-x-1 text-gray-600 hover:text-red-500 focus:outline-none transition-colors"
-                                data-resource-id="<?php echo $ressource['ressource_id']; ?>"
-                                <?php echo $ressource['has_liked'] ? 'disabled' : ''; ?>
-                            >
-                                <svg class="w-5 h-5 <?php echo $ressource['has_liked'] ? 'text-red-500' : 'text-gray-600'; ?>" fill="<?php echo $ressource['has_liked'] ? 'currentColor' : 'none'; ?>" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
-                                </svg>
-                                <span class="like-count"><?php echo $ressource['like_count']; ?> Likes</span>
-                            </button>
+                        <button 
+                            class="like-btn flex items-center space-x-1 text-gray-600 hover:text-red-500 focus:outline-none transition-colors"
+                            data-resource-id="<?php echo $ressource['ressource_id']; ?>"
+                            data-has-liked="<?php echo $ressource['has_liked'] ? 'true' : 'false'; ?>"
+                        >
+                            <svg class="w-5 h-5 <?php echo $ressource['has_liked'] ? 'text-red-500' : 'text-gray-600'; ?>" fill="<?php echo $ressource['has_liked'] ? 'currentColor' : 'none'; ?>" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                            </svg>
+                            <span class="like-count"><?php echo $ressource['like_count']; ?> Likes</span>
+                        </button>
                             <!-- Bouton commentaires -->
                             <div class="flex items-center space-x-2 text-gray-600">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
