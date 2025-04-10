@@ -1,5 +1,4 @@
 <?php
-
 session_start();
 // Inclure la connexion à la base de données et le header
 require_once 'db_connect.php';
@@ -53,9 +52,37 @@ try {
 } catch (PDOException $e) {
     die("Erreur lors de la récupération des ressources : " . $e->getMessage());
 }
+
+// Vérifier si l'utilisateur est connecté
+$isLoggedIn = isset($_SESSION['user_id']);
 ?>
 
 <main class="max-w-6xl mx-auto mt-8 p-6">
+    <!-- Bouton "Ajouter des ressources" -->
+    <div class="mb-6 flex justify-end">
+        <button 
+            id="add-resource-btn" 
+            class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition-colors duration-300"
+        >
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            Ajouter des ressources
+        </button>
+    </div>
+
+    <!-- Div pour le message temporaire -->
+    <div id="login-message" class="hidden mb-4 p-4 bg-yellow-100 text-yellow-700 rounded-lg">
+        Veuillez vous connecter pour ajouter une ressource.
+    </div>
+
+    <!-- Afficher un message de succès si présent -->
+    <?php if (isset($_GET['success'])): ?>
+        <div class="mb-4 p-4 bg-green-100 text-green-700 rounded-lg">
+            <?php echo htmlspecialchars($_GET['success']); ?>
+        </div>
+    <?php endif; ?>
+
     <?php if (empty($ressources)): ?>
         <p class="text-center text-gray-500 text-lg">Aucune ressource disponible pour le moment.</p>
     <?php else: ?>
@@ -143,6 +170,8 @@ try {
 
 <!-- Lien vers le fichier JavaScript externe -->
 <script src="../js/commentaire.js"></script>
+
+<script src="../js/add_ressource.js"></script>
 
 <!-- Inclure le footer -->
 <?php include '../footer/footer.php'; ?>
