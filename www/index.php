@@ -1,4 +1,6 @@
 <?php
+
+session_start();
 // Inclure la connexion à la base de données et le header
 require_once 'db_connect.php';
 require_once '../header/header.php';

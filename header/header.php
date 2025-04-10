@@ -1,3 +1,8 @@
+<?php
+// Déterminer la page actuelle
+$current_page = basename($_SERVER['PHP_SELF']);
+?>
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -24,13 +29,28 @@
                 </h1>
             </div>
             <nav class="space-x-4">
-                <a href="/Projet_Web/collaborative_Library/www/index.php" class="text-white hover:bg-indigo-700 px-4 py-2 rounded-lg transition-colors">Accueil</a>
+                <a href="/Projet_Web/collaborative_Library/www/index.php" 
+                   class="px-4 py-2 rounded-lg transition-colors <?php echo $current_page === 'index.php' ? 'bg-white text-indigo-600' : 'text-white hover:bg-indigo-700'; ?>">
+                    Accueil
+                </a>
                 <?php if (isset($_SESSION['user_id'])): ?>
-                    <a href="profile.php" class="text-white hover:bg-indigo-700 px-4 py-2 rounded-lg transition-colors"><?php echo htmlspecialchars($_SESSION['username']); ?></a>
-                    <a href="logout.php" class="text-white hover:bg-indigo-700 px-4 py-2 rounded-lg transition-colors">Se déconnecter</a>
+                    <a href="profile.php" 
+                       class="px-4 py-2 rounded-lg transition-colors <?php echo $current_page === 'profile.php' ? 'bg-white text-indigo-600' : 'text-white hover:bg-indigo-700'; ?>">
+                        <?php echo htmlspecialchars($_SESSION['username']); ?>
+                    </a>
+                    <a href="logout.php" 
+                       class="px-4 py-2 rounded-lg transition-colors <?php echo $current_page === 'logout.php' ? 'bg-white text-indigo-600' : 'text-white hover:bg-indigo-700'; ?>">
+                        Se déconnecter
+                    </a>
                 <?php else: ?>
-                    <a href="login.php" class="text-white hover:bg-indigo-700 px-4 py-2 rounded-lg transition-colors">Se connecter</a>
-                    <a href="register.php" class="bg-white text-indigo-600 hover:bg-gray-100 px-4 py-2 rounded-lg transition-colors font-semibold">S'inscrire</a>
+                    <a href="login.php" 
+                       class="px-4 py-2 rounded-lg transition-colors <?php echo $current_page === 'login.php' ? 'bg-white text-indigo-600' : 'text-white hover:bg-indigo-700'; ?>">
+                        Se connecter
+                    </a>
+                    <a href="register.php" 
+                       class="px-4 py-2 rounded-lg transition-colors font-semibold <?php echo $current_page === 'register.php' ? 'bg-white text-indigo-600' : 'text-white hover:bg-indigo-700'; ?>">
+                        S'inscrire
+                    </a>
                 <?php endif; ?>
             </nav>
         </div>
