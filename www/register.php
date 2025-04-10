@@ -1,5 +1,4 @@
 <?php
-<<<<<<< HEAD
 // Démarrer la session
 session_start();
 
@@ -9,19 +8,19 @@ require_once 'db_connect.php';
 // Initialiser les variables pour les messages d'erreur et de succès
 $errors = [];
 $success = '';
+$form_username = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Récupérer les données du formulaire
-    $username = trim($_POST['username'] ?? '');
-    var_dump($username); // Ajoutez ceci juste après la définition de $username
+    $form_username = trim($_POST['username'] ?? '');
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
 
     // Validation des champs
-    if (empty($username)) {
+    if (empty($form_username)) {
         $errors[] = "Le nom d'utilisateur est requis.";
-    } elseif (strlen($username) < 3) {
+    } elseif (strlen($form_username) < 3) {
         $errors[] = "Le nom d'utilisateur doit contenir au moins 3 caractères.";
     }
 
@@ -31,10 +30,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = "L'email n'est pas valide.";
     }
 
+    // Validation du mot de passe avec les critères
     if (empty($password)) {
         $errors[] = "Le mot de passe est requis.";
-    } elseif (strlen($password) < 6) {
-        $errors[] = "Le mot de passe doit contenir au moins 6 caractères.";
+    } else {
+        $length_ok = strlen($password) >= 8;
+        $uppercase_ok = preg_match('/[A-Z]/', $password);
+        $special_char_ok = preg_match('/[!@#$%^&*(),.?":{}|<>]/', $password);
+
+        if (!$length_ok) {
+            $errors[] = "Le mot de passe doit contenir au moins 8 caractères.";
+        }
+        if (!$uppercase_ok) {
+            $errors[] = "Le mot de passe doit contenir au moins une majuscule.";
+        }
+        if (!$special_char_ok) {
+            $errors[] = "Le mot de passe doit contenir au moins un caractère spécial.";
+        }
     }
 
     if ($password !== $confirm_password) {
@@ -46,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             // Vérifier si l'utilisateur ou l'email existe déjà
             $stmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE username = ? OR email = ?");
-            $stmt->execute([$username, $email]);
+            $stmt->execute([$form_username, $email]);
             $count = $stmt->fetchColumn();
 
             if ($count > 0) {
@@ -57,69 +69,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 // Insérer l'utilisateur dans la base de données
                 $stmt = $pdo->prepare("INSERT INTO users (username, email, password) VALUES (?, ?, ?)");
-                $stmt->execute([$username, $email, $hashed_password]);
+                $stmt->execute([$form_username, $email, $hashed_password]);
 
-                // Rediriger vers la page de connexion avec un message de succès
-                $success = "Inscription réussie ! Vous pouvez maintenant vous connecter.";
-                header("Location: login.php?success=" . urlencode($success));
+                // Stocker le message de succès dans la session
+                $_SESSION['success_message'] = "Inscription réussie ! Vous pouvez maintenant vous connecter.";
+
+                // Rediriger vers la page de connexion sans message dans l'URL
+                header("Location: login.php");
                 exit();
             }
         } catch (PDOException $e) {
             $errors[] = "Erreur lors de l'inscription : " . $e->getMessage();
         }
-=======
-require_once 'db_connect.php'; 
-
-$message = "";
-
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    try {
-        // Nettoyage et validation des entrées
-        $username = trim($_POST['username'] ?? '');
-        $email = filter_var(trim($_POST['email'] ?? ''), FILTER_VALIDATE_EMAIL);
-        $password = $_POST['password'] ?? '';
-
-        // Vérification des champs
-        if (empty($username) || !$email || empty($password)) {
-            $message = "Tous les champs sont requis et l'email doit être valide.";
-        } else {
-            // Vérification de l'unicité de l'email
-            $stmt = $pdo->prepare("SELECT user_id FROM users WHERE email = :email");
-            $stmt->bindParam(':email', $email);
-            $stmt->execute();
-
-            if ($stmt->rowCount() > 0) {
-                $message = "Cet email est déjà utilisé.";
-            } else {
-                // Vérification de l'unicité du nom d'utilisateur
-                $stmt = $pdo->prepare("SELECT user_id FROM users WHERE username = :username");
-                $stmt->bindParam(':username', $username);
-                $stmt->execute();
-
-                if ($stmt->rowCount() > 0) {
-                    $message = "Ce nom d'utilisateur est déjà pris.";
-                } else {
-                    // Hachage du mot de passe
-                    $password_hash = password_hash($password, PASSWORD_DEFAULT);
-
-                    // Insertion dans la base de données
-                    $stmt = $pdo->prepare("INSERT INTO users (username, email, password) 
-                                          VALUES (:username, :email, :password)");
-                    $stmt->bindParam(':username', $username);
-                    $stmt->bindParam(':email', $email);
-                    $stmt->bindParam(':password', $password_hash);
-
-                    if ($stmt->execute()) {
-                        $message = "Inscription réussie ! Vous pouvez maintenant vous connecter.";
-                    } else {
-                        $message = "Erreur lors de l'inscription.";
-                    }
-                }
-            }
-        }
-    } catch (PDOException $e) {
-        $message = "Erreur : " . $e->getMessage();
->>>>>>> 5126d5dc3ea05d6bb1e974a698656258599cddc2
     }
 }
 ?>
@@ -129,7 +90,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<<<<<<< HEAD
     <title>Inscription - Collaborative Library</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -153,16 +113,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <?php endif; ?>
 
             <!-- Formulaire d'inscription -->
-            <form action="register.php" method="POST" class="space-y-6">
+            <form action="register.php" method="POST" class="space-y-6" autocomplete="off">
                 <div>
                     <label for="username" class="block text-sm font-medium text-gray-700">Nom d'utilisateur</label>
                     <input 
                         type="text" 
                         name="username" 
                         id="username" 
-                        value="<?php echo isset($username) ? htmlspecialchars($username) : ''; ?>" 
+                        value="<?php echo isset($form_username) ? htmlspecialchars($form_username) : ''; ?>" 
                         class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                         required
+                        autocomplete="off"
                     >
                 </div>
 
@@ -175,6 +136,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         value="<?php echo isset($email) ? htmlspecialchars($email) : ''; ?>" 
                         class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                         required
+                        autocomplete="off"
                     >
                 </div>
 
@@ -186,7 +148,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         id="password" 
                         class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                         required
+                        autocomplete="off"
+                        onkeyup="checkPasswordStrength()"
                     >
+                    <!-- Barre de progression -->
+                    <div class="mt-2">
+                        <div id="password-strength" class="h-2 rounded-full bg-gray-200 transition-all duration-300"></div>
+                        <p id="password-strength-text" class="text-sm text-gray-600 mt-1"></p>
+                    </div>
+                    <!-- Messages d'erreur pour les critères -->
+                    <ul id="password-criteria" class="mt-2 text-sm space-y-1">
+                        <li id="length-criteria" class="text-red-500">✘ Veuillez utiliser au moins 8 caractères</li>
+                        <li id="uppercase-criteria" class="text-red-500">✘ Veuillez inclure au moins 1 majuscule</li>
+                        <li id="special-char-criteria" class="text-red-500">✘ Veuillez inclure au moins 1 caractère spécial</li>
+                    </ul>
                 </div>
 
                 <div>
@@ -197,6 +172,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         id="confirm_password" 
                         class="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                         required
+                        autocomplete="off"
                     >
                 </div>
 
@@ -214,66 +190,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         </div>
     </main>
 
+    <!-- Inclure le fichier JavaScript -->
+    <script src="/Projet_Web/collaborative_Library/js/password.js"></script>
+
     <!-- Inclure le footer -->
     <?php include '../footer/footer.php'; ?>
-=======
-    <title>Inscription</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
-    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">Inscription</h2>
-        
-        <?php if (!empty($message)): ?>
-            <div class="mb-4 p-3 rounded <?php echo strpos($message, 'réussie') !== false ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'; ?>">
-                <?php echo htmlspecialchars($message); ?>
-            </div>
-        <?php endif; ?>
-
-        <form action="register.php" method="POST" class="space-y-6">
-            <div>
-                <label for="username" class="block text-sm font-medium text-gray-700">Nom d'utilisateur</label>
-                <input 
-                    type="text" 
-                    id="username" 
-                    name="username" 
-                    value="<?php echo isset($username) ? htmlspecialchars($username) : ''; ?>"
-                    required 
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                >
-            </div>
-
-            <div>
-                <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
-                <input 
-                    type="email" 
-                    id="email" 
-                    name="email" 
-                    value="<?php echo isset($email) ? htmlspecialchars($email) : ''; ?>"
-                    required 
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                >
-            </div>
-
-            <div>
-                <label for="password" class="block text-sm font-medium text-gray-700">Mot de passe</label>
-                <input 
-                    type="password" 
-                    id="password" 
-                    name="password" 
-                    required 
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                >
-            </div>
-
-            <button 
-                type="submit" 
-                class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-            >
-                S'inscrire
-            </button>
-        </form>
-    </div>
->>>>>>> 5126d5dc3ea05d6bb1e974a698656258599cddc2
 </body>
 </html>
