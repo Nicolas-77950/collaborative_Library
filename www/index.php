@@ -6,7 +6,7 @@ require_once 'db_connect.php';
 // Récupérer l'ID de l'utilisateur connecté (0 si non connecté)
 $userId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
 
-// Requête SQL pour récupérer les ressources avec les informations sur les likes et commentaires
+// Requête SQL pour récupérer les ressources avec les informations sur les likes, commentaires et favoris
 $sql = "
     SELECT 
         r.ressource_id,
@@ -25,7 +25,14 @@ $sql = "
             FROM likes l2 
             WHERE l2.ressource_id = r.ressource_id 
             AND l2.user_id = :user_id
-        ) AS has_liked
+        ) AS has_liked,
+        EXISTS (
+            SELECT 1 
+            FROM favoris f 
+            WHERE f.ressource_id = r.ressource_id 
+            AND f.user_id = :user_id
+        ) AS is_favorited,
+        COUNT(f2.favori_id) AS favori_count
     FROM 
         ressources r
     INNER JOIN 
@@ -36,6 +43,8 @@ $sql = "
         commentaires c ON r.ressource_id = c.ressource_id
     LEFT JOIN 
         users u2 ON c.user_id = u2.user_id
+    LEFT JOIN 
+        favoris f2 ON r.ressource_id = f2.ressource_id
     GROUP BY 
         r.ressource_id, r.title, r.description, r.type, r.created_at, r.video_url, u.username
     ORDER BY 
@@ -100,6 +109,10 @@ require_once '../header/header.php';
 
     <div id="login-message" class="hidden mb-4 p-4 bg-yellow-100 text-yellow-700 rounded-lg">
         Veuillez vous connecter pour ajouter une ressource.
+    </div>
+
+    <div id="favori-login-message" class="hidden mb-4 p-4 bg-yellow-100 text-yellow-700 rounded-lg">
+        Veuillez vous connecter pour ajouter une ressource aux favoris.
     </div>
 
     <!-- Afficher un message de succès si présent -->
@@ -200,75 +213,89 @@ require_once '../header/header.php';
                         <p><span class="font-semibold text-gray-700">Auteur :</span> <?php echo htmlspecialchars($ressource['username']); ?></p>
                         <p><span class="font-semibold text-gray-700">Date :</span> <?php echo htmlspecialchars($ressource['created_at']); ?></p>
                         <div class="flex items-center space-x-4">
-                        <button 
-                            class="like-btn flex items-center space-x-1 text-gray-600 hover:text-red-500 focus:outline-none transition-colors"
-                            data-resource-id="<?php echo $ressource['ressource_id']; ?>"
-                            data-has-liked="<?php echo $ressource['has_liked'] ? 'true' : 'false'; ?>"
-                        >
-                            <svg class="w-5 h-5 <?php echo $ressource['has_liked'] ? 'text-red-500' : 'text-gray-600'; ?>" fill="<?php echo $ressource['has_liked'] ? 'currentColor' : 'none'; ?>" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
-                            </svg>
-                            <span class="like-count"><?php echo $ressource['like_count']; ?> Likes</span>
-                        </button>
-                                            <!-- Bouton commentaires -->
-                <div class="flex items-center space-x-2 text-gray-600">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                            d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
-                    </svg>
-                    <span class="comment-count cursor-pointer hover:text-indigo-600 transition-colors" 
-                        data-resource-id="<?php echo $ressource['ressource_id']; ?>">
-                        <?php echo $ressource['comment_count']; ?> Commentaires
-                    </span>
-                </div>
-                </div>
-                </div>
+                            <!-- Bouton like -->
+                            <button 
+                                class="like-btn flex items-center space-x-1 text-gray-600 hover:text-red-500 focus:outline-none transition-colors"
+                                data-resource-id="<?php echo $ressource['ressource_id']; ?>"
+                                data-has-liked="<?php echo $ressource['has_liked'] ? 'true' : 'false'; ?>"
+                            >
+                                <svg class="w-5 h-5 <?php echo $ressource['has_liked'] ? 'text-red-500' : 'text-gray-600'; ?>" fill="<?php echo $ressource['has_liked'] ? 'currentColor' : 'none'; ?>" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                </svg>
+                                <span class="like-count"><?php echo $ressource['like_count']; ?> Likes</span>
+                            </button>
 
-                <!-- Section commentaires -->
-                <div 
-                    id="comments-<?php echo $ressource['ressource_id']; ?>" 
-                    class="mt-4 p-4 bg-gray-100 rounded-lg hidden" <!-- Ajout de la classe 'hidden' par défaut -->
-                >
-                    <!-- Liste des commentaires -->
-                    <div class="comment-list space-y-3">
-                        <?php if (empty($ressource['comments'])): ?>
-                            <p class="text-gray-500 italic">Aucun commentaire pour le moment.</p>
-                        <?php else: ?>
-                            <?php foreach ($ressource['comments'] as $author => $content): ?>
-                                <div class="border-l-4 border-indigo-200 pl-3">
-                                    <p class="font-semibold text-gray-700"><?php echo htmlspecialchars($author); ?></p>
-                                    <p class="text-gray-600"><?php echo htmlspecialchars($content); ?></p>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
+                            <!-- Bouton favori -->
+                            <button 
+                                class="favori-btn flex items-center space-x-1 text-gray-600 hover:text-yellow-500 focus:outline-none transition-colors"
+                                data-resource-id="<?php echo $ressource['ressource_id']; ?>"
+                                data-is-favorited="<?php echo $ressource['is_favorited'] ? 'true' : 'false'; ?>"
+                            >
+                                <svg class="w-5 h-5 <?php echo $ressource['is_favorited'] ? 'text-yellow-500' : 'text-gray-600'; ?>" fill="<?php echo $ressource['is_favorited'] ? 'currentColor' : 'none'; ?>" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.97a1 1 0 00.95.69h4.18c.969 0 1.371 1.24.588 1.81l-3.39 2.465a1 1 0 00-.364 1.118l1.287 3.971c.3.921-.755 1.688-1.54 1.118l-3.39-2.465a1 1 0 00-1.175 0l-3.39 2.465c-.784.57-1.838-.197-1.54-1.118l1.287-3.971a1 1 0 00-.364-1.118L2.934 9.397c-.783-.57-.38-1.81.588-1.81h4.18a1 1 0 00.95-.69l1.286-3.97z"/>
+                                </svg>
+                                <span class="favori-count"><?php echo $ressource['favori_count']; ?> Favoris</span>
+                            </button>
+
+                            <!-- Bouton commentaires -->
+                            <div class="flex items-center space-x-2 text-gray-600">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                        d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                                </svg>
+                                <span class="comment-count cursor-pointer hover:text-indigo-600 transition-colors" 
+                                    data-resource-id="<?php echo $ressource['ressource_id']; ?>">
+                                    <?php echo $ressource['comment_count']; ?> Commentaires
+                                </span>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Formulaire pour ajouter un commentaire -->
-                    <?php if ($isLoggedIn): ?>
-                        <form 
-                            class="comment-form mt-4 flex flex-col space-y-2" 
-                            data-resource-id="<?php echo $ressource['ressource_id']; ?>"
-                        >
-                            <textarea 
-                                name="content" 
-                                class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" 
-                                rows="2" 
-                                placeholder="Ajouter un commentaire..."
-                                required
-                            ></textarea>
-                            <button 
-                                type="submit" 
-                                class="self-end px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition-colors duration-300"
+                    <!-- Section commentaires -->
+                    <div 
+                        id="comments-<?php echo $ressource['ressource_id']; ?>" 
+                        class="mt-4 p-4 bg-gray-100 rounded-lg hidden" 
+                    >
+                        <!-- Liste des commentaires -->
+                        <div class="comment-list space-y-3">
+                            <?php if (empty($ressource['comments'])): ?>
+                                <p class="text-gray-500 italic">Aucun commentaire pour le moment.</p>
+                            <?php else: ?>
+                                <?php foreach ($ressource['comments'] as $author => $content): ?>
+                                    <div class="border-l-4 border-indigo-200 pl-3">
+                                        <p class="font-semibold text-gray-700"><?php echo htmlspecialchars($author); ?></p>
+                                        <p class="text-gray-600"><?php echo htmlspecialchars($content); ?></p>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
+
+                        <!-- Formulaire pour ajouter un commentaire -->
+                        <?php if ($isLoggedIn): ?>
+                            <form 
+                                class="comment-form mt-4 flex flex-col space-y-2" 
+                                data-resource-id="<?php echo $ressource['ressource_id']; ?>"
                             >
-                                Commenter
-                            </button>
-                        </form>
-                    <?php else: ?>
-                        <p class="mt-4 text-gray-500 italic">
-                            <a href="login.php" class="text-indigo-600 hover:underline">Connectez-vous</a> pour ajouter un commentaire.
-                        </p>
-                    <?php endif; ?>
-                </div>
+                                <textarea 
+                                    name="content" 
+                                    class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" 
+                                    rows="2" 
+                                    placeholder="Ajouter un commentaire..."
+                                    required
+                                ></textarea>
+                                <button 
+                                    type="submit" 
+                                    class="self-end px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition-colors duration-300"
+                                >
+                                    Commenter
+                                </button>
+                            </form>
+                        <?php else: ?>
+                            <p class="mt-4 text-gray-500 italic">
+                                <a href="login.php" class="text-indigo-600 hover:underline">Connectez-vous</a> pour ajouter un commentaire.
+                            </p>
+                        <?php endif; ?>
+                    </div>
                 </div>
             <?php endforeach; ?>
         </div>
@@ -284,6 +311,7 @@ require_once '../header/header.php';
 <script src="../js/add_ressource.js"></script>
 <script src="../js/like.js"></script>
 <script src="../js/comment.js"></script>
+<script src="../js/favori.js"></script> 
 
 <!-- Inclure le footer -->
 <?php include '../footer/footer.php'; ?>
