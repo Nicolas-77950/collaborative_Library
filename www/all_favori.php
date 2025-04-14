@@ -3,14 +3,15 @@ session_start();
 
 require_once 'db_connect.php';
 
-// Récupérer l'ID de l'utilisateur connecté (0 si non connecté)
-$userId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
+// Vérifier si l'utilisateur est connecté
+if (!isset($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit;
+}
 
-// Récupérer les filtres depuis le formulaire
-$filterType = isset($_GET['type']) ? trim($_GET['type']) : 'all';
-$motCle = isset($_GET['mot_cle']) ? trim($_GET['mot_cle']) : '';
+$userId = (int)$_SESSION['user_id'];
 
-// Requête SQL pour récupérer les ressources avec les informations sur les likes, commentaires et favoris
+// Requête SQL pour récupérer les ressources mises en favori par l'utilisateur
 $sql = "
     SELECT 
         r.ressource_id,
@@ -49,30 +50,13 @@ $sql = "
         users u2 ON c.user_id = u2.user_id
     LEFT JOIN 
         favoris f2 ON r.ressource_id = f2.ressource_id
-";
-
-// Ajouter les conditions WHERE si des filtres sont appliqués
-$conditions = [];
-$params = [':user_id' => $userId];
-
-// Filtre par type
-if ($filterType !== 'all') {
-    $conditions[] = "r.type = :type";
-    $params[':type'] = $filterType;
-}
-
-// Filtre par mots-clés (recherche dans le titre, la description ou le nom de l'auteur)
-if (!empty($motCle)) {
-    $conditions[] = "(r.title LIKE :mot_cle OR r.description LIKE :mot_cle OR u.username LIKE :mot_cle)";
-    $params[':mot_cle'] = '%' . $motCle . '%';
-}
-
-// Ajouter les conditions à la requête
-if (!empty($conditions)) {
-    $sql .= " WHERE " . implode(' AND ', $conditions);
-}
-
-$sql .= "
+    WHERE 
+        EXISTS (
+            SELECT 1 
+            FROM favoris f 
+            WHERE f.ressource_id = r.ressource_id 
+            AND f.user_id = :user_id
+        )
     GROUP BY 
         r.ressource_id, r.title, r.description, r.type, r.created_at, r.video_url, u.username
     ORDER BY 
@@ -81,9 +65,10 @@ $sql .= "
 
 try {
     $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
+    $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+    $stmt->execute();
     $ressources = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     // Traiter les commentaires pour chaque ressource
     foreach ($ressources as &$ressource) {
         if ($ressource['comments_content']) {
@@ -111,100 +96,29 @@ try {
         $ressource['files'] = isset($filesByResource[$ressource['ressource_id']]) ? $filesByResource[$ressource['ressource_id']] : [];
     }
 } catch (PDOException $e) {
-    die("Erreur lors de la récupération des ressources : " . $e->getMessage());
+    die("Erreur lors de la récupération des ressources favorites : " . $e->getMessage());
 }
 
-// Vérifier si l'utilisateur est connecté
-$isLoggedIn = isset($_SESSION['user_id']);
+$isLoggedIn = true; // L'utilisateur est forcément connecté ici
 
 require_once '../header/header.php';
 ?>
 
 <main class="max-w-6xl mx-auto mt-8 p-6">
-    <!-- Filtres, bouton Mes Favoris et bouton Ajouter des ressources -->
-    <div class="mb-6 flex justify-between items-center space-x-4">
-        <div class="flex items-center space-x-4">
-            <!-- Bouton Mes Favoris -->
-            <a href="all_favori.php" class="inline-flex items-center px-4 py-2 bg-yellow-500 text-white font-semibold rounded-lg shadow-md hover:bg-yellow-600 transition-colors duration-300">
-                <svg class="w-5 h-5 mr-2" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.97a1 1 0 00.95.69h4.18c.969 0 1.371 1.24.588 1.81l-3.39 2.465a1 1 0 00-.364 1.118l1.287 3.971c.3.921-.755 1.688-1.54 1.118l-3.39-2.465a1 1 0 00-1.175 0l-3.39 2.465c-.784.57-1.838-.197-1.54-1.118l1.287-3.971a1 1 0 00-.364-1.118L2.934 9.397c-.783-.57-.38-1.81.588-1.81h4.18a1 1 0 00.95-.69l1.286-3.97z"/>
-                </svg>
-                Mes Favoris
-            </a>
-
-            <!-- Formulaire pour les filtres -->
-            <form method="GET" class="flex items-center space-x-4">
-                <!-- Filtre par type -->
-                <div class="flex items-center space-x-2">
-                    <label for="type" class="text-gray-700 font-semibold">Filtrer par type :</label>
-                    <select 
-                        name="type" 
-                        id="type" 
-                        class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        onchange="this.form.submit()"
-                    >
-                        <option value="all" <?php echo $filterType === 'all' ? 'selected' : ''; ?>>Toutes</option>
-                        <option value="tutoriel" <?php echo $filterType === 'tutoriel' ? 'selected' : ''; ?>>Tutoriel</option>
-                        <option value="article" <?php echo $filterType === 'article' ? 'selected' : ''; ?>>Article</option>
-                        <option value="snippet" <?php echo $filterType === 'snippet' ? 'selected' : ''; ?>>Snippet</option>
-                        <option value="autres" <?php echo $filterType === 'autres' ? 'selected' : ''; ?>>Autres</option>
-                    </select>
-                </div>
-
-                <!-- Filtre par mots-clés -->
-                <div class="flex items-center space-x-2">
-                    <label for="mot_cle" class="text-gray-700 font-semibold">Mot clé :</label>
-                    <input 
-                        type="text" 
-                        name="mot_cle" 
-                        id="mot_cle" 
-                        value="<?php echo htmlspecialchars($motCle); ?>" 
-                        placeholder="Titre, description, auteur..." 
-                        class="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    >
-                </div>
-
-                <!-- Bouton Rechercher -->
-                <button 
-                    type="submit" 
-                    class="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-                >
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                    </svg>
-                </button>
-            </form>
-        </div>
-
-        <!-- Bouton Ajouter des ressources -->
-        <button 
-            id="add-resource-btn" 
-            class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition-colors duration-300"
-        >
+    <!-- Titre et bouton Retour -->
+    <div class="mb-6 flex justify-between items-center">
+        <h1 class="text-2xl font-bold text-indigo-700">Mes Ressources Favorites</h1>
+        <a href="index.php" class="inline-flex items-center px-4 py-2 bg-gray-500 text-white font-semibold rounded-lg shadow-md hover:bg-gray-600 transition-colors duration-300">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
             </svg>
-            Ajouter des ressources
-        </button>
+            Retour
+        </a>
     </div>
 
-    <div id="login-message" class="hidden mb-4 p-4 bg-yellow-100 text-yellow-700 rounded-lg">
-        Veuillez vous connecter pour ajouter une ressource.
-    </div>
-
-    <div id="favori-login-message" class="hidden mb-4 p-4 bg-yellow-100 text-yellow-700 rounded-lg">
-        Veuillez vous connecter pour ajouter une ressource aux favoris.
-    </div>
-
-    <!-- Afficher un message de succès si présent -->
-    <?php if (isset($_GET['success'])): ?>
-        <div class="mb-4 p-4 bg-green-100 text-green-700 rounded-lg">
-            <?php echo htmlspecialchars($_GET['success']); ?>
-        </div>
-    <?php endif; ?>
-
+    <!-- Afficher un message si aucune ressource favorite -->
     <?php if (empty($ressources)): ?>
-        <p class="text-center text-gray-500 text-lg">Aucune ressource disponible pour le moment.</p>
+        <p class="text-center text-gray-500 text-lg">Vous n'avez aucune ressource en favori pour le moment.</p>
     <?php else: ?>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <?php foreach ($ressources as $ressource): ?>
@@ -240,12 +154,10 @@ require_once '../header/header.php';
                         <div class="mt-3">
                             <h3 class="text-sm font-semibold text-gray-700">Vidéo associée :</h3>
                             <?php
-                            // Si c'est une URL YouTube, afficher un lecteur intégré
                             if (preg_match('/youtube\.com\/watch\?v=([^\&]+)/i', $ressource['video_url'], $match)) {
                                 $videoId = $match[1];
                                 echo '<iframe class="w-full h-40 mt-2 rounded-lg" src="https://www.youtube.com/embed/' . htmlspecialchars($videoId) . '" frameborder="0" allowfullscreen></iframe>';
                             } else {
-                                // Sinon, afficher un lien cliquable
                                 echo '<a href="' . htmlspecialchars($ressource['video_url']) . '" target="_blank" class="text-indigo-600 hover:underline">Voir la vidéo</a>';
                             }
                             ?>
@@ -259,16 +171,13 @@ require_once '../header/header.php';
                             <div class="space-y-2 mt-2">
                                 <?php foreach ($ressource['files'] as $file): ?>
                                     <?php
-                                    // Vérifier si le fichier est une image (JPEG ou PNG)
                                     $isImage = in_array($file['file_type'], ['image/jpeg', 'image/png']);
                                     ?>
                                     <?php if ($isImage): ?>
-                                        <!-- Afficher l'image directement -->
                                         <div>
                                             <img src="<?php echo htmlspecialchars($file['file_path']); ?>" alt="Image jointe" class="w-full max-w-xs h-auto rounded-lg">
                                         </div>
                                     <?php else: ?>
-                                        <!-- Afficher un lien pour les autres types de fichiers -->
                                         <div class="flex items-center space-x-2">
                                             <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
@@ -338,7 +247,7 @@ require_once '../header/header.php';
                         class="mt-4 p-4 bg-gray-100 rounded-lg hidden" 
                     >
                         <!-- Liste des commentaires -->
-                        <div class="comment-list space-y-3">
+                        <div class="comment-list space-y-3 text-sm">
                             <?php if (empty($ressource['comments'])): ?>
                                 <p class="text-gray-500 italic">Aucun commentaire pour le moment.</p>
                             <?php else: ?>
@@ -352,30 +261,24 @@ require_once '../header/header.php';
                         </div>
 
                         <!-- Formulaire pour ajouter un commentaire -->
-                        <?php if ($isLoggedIn): ?>
-                            <form 
-                                class="comment-form mt-4 flex flex-col space-y-2" 
-                                data-resource-id="<?php echo $ressource['ressource_id']; ?>"
+                        <form 
+                            class="comment-form mt-4 flex flex-col space-y-2" 
+                            data-resource-id="<?php echo $ressource['ressource_id']; ?>"
+                        >
+                            <textarea 
+                                name="content" 
+                                class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" 
+                                rows="2" 
+                                placeholder="Ajouter un commentaire..."
+                                required
+                            ></textarea>
+                            <button 
+                                type="submit" 
+                                class="self-end px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition-colors duration-300"
                             >
-                                <textarea 
-                                    name="content" 
-                                    class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" 
-                                    rows="2" 
-                                    placeholder="Ajouter un commentaire..."
-                                    required
-                                ></textarea>
-                                <button 
-                                    type="submit" 
-                                    class="self-end px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition-colors duration-300"
-                                >
-                                    Commenter
-                                </button>
-                            </form>
-                        <?php else: ?>
-                            <p class="mt-4 text-gray-500 italic">
-                                <a href="login.php" class="text-indigo-600 hover:underline">Connectez-vous</a> pour ajouter un commentaire.
-                            </p>
-                        <?php endif; ?>
+                                Commenter
+                            </button>
+                        </form>
                     </div>
                 </div>
             <?php endforeach; ?>
@@ -385,7 +288,7 @@ require_once '../header/header.php';
 
 <!-- Définir la variable isLoggedIn pour les scripts JavaScript -->
 <script>
-    const isLoggedIn = <?php echo $isLoggedIn ? 'true' : 'false'; ?>;
+    const isLoggedIn = true;
 </script>
 
 <!-- Inclure les fichiers JavaScript -->
