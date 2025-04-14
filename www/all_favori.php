@@ -247,7 +247,8 @@ require_once '../header/header.php';
                         class="mt-4 p-4 bg-gray-100 rounded-lg hidden" 
                     >
                         <!-- Liste des commentaires -->
-                        <div class="comment-list space-y-3 text-sm">
+
+                        <div class="comment-list space-y-3 text-sm max-h-24 overflow-y-auto">
                             <?php if (empty($ressource['comments'])): ?>
                                 <p class="text-gray-500 italic">Aucun commentaire pour le moment.</p>
                             <?php else: ?>

@@ -338,18 +338,18 @@ require_once '../header/header.php';
                         class="mt-4 p-4 bg-gray-100 rounded-lg hidden" 
                     >
                         <!-- Liste des commentaires -->
-                        <div class="comment-list space-y-3">
-                            <?php if (empty($ressource['comments'])): ?>
-                                <p class="text-gray-500 italic">Aucun commentaire pour le moment.</p>
-                            <?php else: ?>
-                                <?php foreach ($ressource['comments'] as $author => $content): ?>
-                                    <div class="border-l-4 border-indigo-200 pl-3">
-                                        <p class="font-semibold text-gray-700"><?php echo htmlspecialchars($author); ?></p>
-                                        <p class="text-gray-600"><?php echo htmlspecialchars($content); ?></p>
-                                    </div>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </div>
+                    <div class="comment-list space-y-3 max-h-24 overflow-y-auto">
+                        <?php if (empty($ressource['comments'])): ?>
+                            <p class="text-gray-500 italic">Aucun commentaire pour le moment.</p>
+                        <?php else: ?>
+                            <?php foreach ($ressource['comments'] as $author => $content): ?>
+                                <div class="border-l-4 border-indigo-200 pl-3">
+                                    <p class="font-semibold text-gray-700"><?php echo htmlspecialchars($author); ?></p>
+                                    <p class="text-gray-600"><?php echo htmlspecialchars($content); ?></p>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
 
                         <!-- Formulaire pour ajouter un commentaire -->
                         <?php if ($isLoggedIn): ?>
