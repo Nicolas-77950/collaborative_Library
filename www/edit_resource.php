@@ -70,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-require_once '../header/header.php';
+require_once 'header/header.php';
 ?>
 
 <main class="max-w-6xl mx-auto mt-8 p-6">
@@ -157,6 +157,6 @@ require_once '../header/header.php';
     </form>
 </main>
 
-<?php include '../footer/footer.php'; ?>
+<?php include 'footer/footer.php'; ?>
 </body>
 </html>

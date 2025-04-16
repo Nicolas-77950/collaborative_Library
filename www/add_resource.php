@@ -121,7 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Inclure le header après avoir géré la redirection
-require_once '../header/header.php';
+require_once 'header/header.php';
 ?>
 
 <main class="max-w-6xl mx-auto mt-8 p-6">
@@ -252,4 +252,4 @@ require_once '../header/header.php';
 </main>
 
 <!-- Inclure le footer -->
-<?php include '../footer/footer.php'; ?>
+<?php include 'footer/footer.php'; ?>

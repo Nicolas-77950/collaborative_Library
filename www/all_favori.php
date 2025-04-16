@@ -101,7 +101,7 @@ try {
 
 $isLoggedIn = true; // L'utilisateur est forcément connecté ici
 
-require_once '../header/header.php';
+require_once 'header/header.php';
 ?>
 
 <main class="max-w-6xl mx-auto mt-8 p-6">
@@ -293,12 +293,12 @@ require_once '../header/header.php';
 </script>
 
 <!-- Inclure les fichiers JavaScript -->
-<script src="../js/add_ressource.js"></script>
-<script src="../js/like.js"></script>
-<script src="../js/comment.js"></script>
-<script src="../js/favori.js"></script> 
+<script src="js/add_ressource.js"></script>
+<script src="js/like.js"></script>
+<script src="js/comment.js"></script>
+<script src="js/favori.js"></script> 
 
 <!-- Inclure le footer -->
-<?php include '../footer/footer.php'; ?>
+<?php include 'footer/footer.php'; ?>
 </body>
 </html>

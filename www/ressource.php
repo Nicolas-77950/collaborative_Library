@@ -1,7 +1,7 @@
 <?php
 session_start();
 require_once 'db_connect.php';
-require_once '../header/header.php';
+require_once 'header/header.php';
 
 // Vérifier si l'ID de la ressource est fourni
 if (!isset($_GET['id'])) {
@@ -95,4 +95,4 @@ $files = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </div>
 </main>
 
-<?php include '../footer/footer.php'; ?>
+<?php include 'footer/footer.php'; ?>

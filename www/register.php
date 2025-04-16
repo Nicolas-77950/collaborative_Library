@@ -95,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body class="bg-gray-100">
     <!-- Inclure le header -->
-    <?php require_once '../header/header.php'; ?>
+    <?php require_once 'header/header.php'; ?>
 
     <main class="max-w-6xl mx-auto mt-8 p-6">
         <div class="max-w-md mx-auto bg-white rounded-xl shadow-lg p-8">
@@ -191,9 +191,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </main>
 
     <!-- Inclure le fichier JavaScript -->
-    <script src="../js/password.js"></script>
+    <script src="js/password.js"></script>
 
     <!-- Inclure le footer -->
-    <?php include '../footer/footer.php'; ?>
+    <?php include 'footer/footer.php'; ?>
 </body>
 </html>

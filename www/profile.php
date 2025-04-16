@@ -38,7 +38,7 @@ try {
     die("Erreur lors de la récupération des ressources : " . $e->getMessage());
 }
 
-require_once '../header/header.php';
+require_once 'header/header.php';
 ?>
 
 <main class="max-w-6xl mx-auto mt-8 p-6">
@@ -146,8 +146,8 @@ require_once '../header/header.php';
 </main>
 
 <!-- Inclure le fichier JavaScript pour la gestion de la suppression -->
-<script src="../js/delete_resource.js"></script>
+<script src="js/delete_resource.js"></script>
 
-<?php include '../footer/footer.php'; ?>
+<?php include 'footer/footer.php'; ?>
 </body>
 </html>
