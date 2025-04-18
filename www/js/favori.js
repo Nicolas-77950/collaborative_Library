@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const svg = button.querySelector('svg');
 
             try {
-                const response = await fetch('../www/toggle_favori.php', {
+                const response = await fetch('toggle_favori.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
