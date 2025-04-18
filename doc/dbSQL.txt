@@ -1,0 +1,86 @@
+-- Créer la base de données
+CREATE DATABASE collaborative_Library;
+
+-- Utiliser la base de données
+USE collaborative_Library;
+
+-- Table des utilisateurs
+CREATE TABLE users (
+    user_id INT PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- Table des ressources
+CREATE TABLE ressources (
+    ressource_id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    description TEXT,
+    content TEXT NOT NULL,
+    type ENUM('tutoriel', 'snippet', 'article', 'autres') NOT NULL,
+    video_url VARCHAR(255) DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Table des tags
+CREATE TABLE tags (
+    tag_id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(50) NOT NULL UNIQUE
+) ENGINE=InnoDB;
+
+-- Table de liaison ressources_tags 
+CREATE TABLE ressources_tags (
+    ressource_id INT NOT NULL,
+    tag_id INT NOT NULL,
+    PRIMARY KEY (ressource_id, tag_id),
+    FOREIGN KEY (ressource_id) REFERENCES ressources(ressource_id) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES tags(tag_id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Table des likes
+CREATE TABLE likes (
+    like_id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    ressource_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE, 
+    FOREIGN KEY (ressource_id) REFERENCES ressources(ressource_id) ON DELETE CASCADE,
+    UNIQUE KEY unique_like (user_id, ressource_id) 
+    ) ENGINE=InnoDB;
+
+-- Table des commentaires
+CREATE TABLE commentaires (
+    commentaire_id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    ressource_id INT NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE, 
+    FOREIGN KEY (ressource_id) REFERENCES ressources(ressource_id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Table des favoris
+CREATE TABLE favoris (
+    favori_id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    ressource_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE, 
+    FOREIGN KEY (ressource_id) REFERENCES ressources(ressource_id) ON DELETE CASCADE,
+    UNIQUE KEY unique_favori (user_id, ressource_id) 
+) ENGINE=InnoDB;
+
+CREATE TABLE ressource_files (
+    file_id INT AUTO_INCREMENT PRIMARY KEY,
+    ressource_id INT NOT NULL,
+    file_path VARCHAR(255) NOT NULL,
+    file_type VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (ressource_id) REFERENCES ressources(ressource_id) ON DELETE CASCADE
+);
