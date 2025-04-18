@@ -50,27 +50,11 @@ Base de données : MySQL
 
 Autres : AJAX pour des interactions dynamiques
 
+icônes : avg
 
 🤝 Contribuer
 
-Nous accueillons toutes les contributions ! Pour participer :
 
-
-Forkez le projet.
-
-Créez une branche pour votre fonctionnalité (git checkout -b feature/nouvelle-fonction).
-
-Commitez vos changements (git commit -m "Ajout de nouvelle fonctionnalité").
-
-Poussez votre branche (git push origin feature/nouvelle-fonction).
-
-Ouvrez une Pull Request.
-
-Consultez CONTRIBUTING.md pour plus de détails.
-
-📜 Licence
-
-Ce projet est sous licence MIT – libre à vous de l'utiliser, le modifier et le partager !
 
 📬 Contact
 
